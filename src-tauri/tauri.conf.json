@@ -1,0 +1,56 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Capit",
+  "version": "0.1.0",
+  "identifier": "com.ansh.capit",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Capit (Multilingual)",
+        "width": 1100,
+        "height": 750
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; media-src 'self' asset: https://asset.localhost http://asset.localhost; img-src 'self' asset: https://asset.localhost http://asset.localhost;",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$HOME/**"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [
+      "bin/ggml.dll",
+      "bin/ggml-base.dll",
+      "bin/ggml-cpu.dll",
+      "bin/ggml-cuda.dll",
+      "bin/ggml-vulkan.dll"
+    ],
+    "externalBin": [
+      "bin/parakeet-cli",
+      "bin/parakeet-cli-vulkan",
+      "bin/ffmpeg"
+    ]
+  }
+}
