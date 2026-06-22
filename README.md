@@ -1,7 +1,7 @@
 <div align="center">
 
   # Capit 🎙️
-  ### Privacy-First, Hardware-Accelerated Local Audio Transcription
+  ### Blazingly Fast Local Subtitles & Captions — One-Click Install, 25+ Languages
 
   [![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB?style=for-the-badge&logo=tauri&logoColor=FFFFFF)](https://tauri.app/)
   [![Rust](https://img.shields.io/badge/Rust-Backend-000000?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
@@ -10,10 +10,10 @@
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
   <p>
-    Capit uses quantized GGUF acoustic models via <a href="https://github.com/mudler/parakeet-cpp">parakeet-cpp</a> (GGML) to transcribe audio <b>entirely on your own hardware</b>. It ships with dual inference binaries — a <b>Vulkan GPU</b> engine for NVIDIA/AMD/Intel and an <b>AVX2 CPU</b> fallback — so it runs on any Windows machine, no cloud APIs required.
+    Capit is a <b>one-click install</b> desktop app that generates subtitles, captions, and transcriptions from any audio or video file — <b>entirely offline</b> on your own machine. It supports <b>25+ languages</b> including Hindi, Hinglish, Punjabi, English, French, Japanese, and more. Powered by local AI models via <a href="https://github.com/mudler/parakeet-cpp">parakeet-cpp</a> (GGML), with hardware acceleration across NVIDIA, AMD, and Intel GPUs.
   </p>
 
-  **TL;DR — Transcribe 1 hour of audio in ~10 seconds on an RTX 5070 Ti. Fully offline. Free forever.**
+  **TL;DR — Transcribe 1 hour of audio in ~10 seconds on an RTX 5070 Ti. Export to SRT subtitles instantly. No cloud, no API keys, free forever.**
 
 </div>
 
