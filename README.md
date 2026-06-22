@@ -1,3 +1,5 @@
+
+
 <div align="center">
 
   # Capit 🎙️
@@ -21,7 +23,9 @@
   <h3>🎬 See Capit in Action</h3>
 </div>
 
-[![Capit Demo](assets/capit-demo-thumbnail.jpg)](https://github.com/singla0009/capit/raw/main/assets/capit-demo.mp4)
+[![Capit Demo]
+https://github.com/user-attachments/assets/f0633a64-3d0f-4393-a8a4-77f4c061701e
+
 
 <div align="center">
   <sub>Drop a file → pick a model → get subtitles. That's it.</sub>
