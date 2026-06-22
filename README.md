@@ -21,7 +21,7 @@
   <h3>🎬 See Capit in Action</h3>
 </div>
 
-https://github.com/singla0009/capit/raw/main/assets/capit-demo.mp4
+![Capit Demo](assets/capit-demo.mp4)
 
 <div align="center">
   <sub>Drop a file → pick a model → get subtitles. That's it.</sub>
