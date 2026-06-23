@@ -44,6 +44,7 @@ function App() {
   
   const [modelStatus, setModelStatus] = useState<ModelStatus | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadingModelId, setDownloadingModelId] = useState<string | null>(null);
   const [showModelPanel, setShowModelPanel] = useState(false);
   const [showCpuSettings, setShowCpuSettings] = useState(false);
   const [useParallel, setUseParallel] = useState(true);
@@ -105,6 +106,7 @@ function App() {
 
   const downloadModel = async (modelId: string) => {
     setIsDownloading(true);
+    setDownloadingModelId(modelId);
     clearLogs();
     try {
       await invoke("download_model", { modelId });
@@ -113,6 +115,26 @@ function App() {
       appLog(`[ERROR] Download failed: ${e.message || String(e)}`);
     }
     setIsDownloading(false);
+    setDownloadingModelId(null);
+  };
+
+  const cancelDownload = async () => {
+    try {
+      await invoke("cancel_download");
+      appLog("[SYSTEM] Cancel signal sent to download engine...");
+    } catch (e: any) {
+      console.error(e);
+    }
+  };
+
+  const deleteModel = async (modelId: string) => {
+    if (!confirm("Are you sure you want to delete this model from your disk?")) return;
+    try {
+      await invoke("delete_model", { modelId });
+      refreshModels();
+    } catch (e: any) {
+      appLog(`[ERROR] Failed to delete model: ${e.message || String(e)}`);
+    }
   };
 
   const startTranscription = async () => {
@@ -225,9 +247,15 @@ function App() {
         <div className="toolbar-right">
           <button className="pro-btn" onClick={selectFile} disabled={isProcessing || isDownloading}>Import Media</button>
           {!currentModelLoaded ? (
-            <button className="pro-btn primary" onClick={() => downloadModel(selectedModelId)} disabled={isProcessing || isDownloading} style={{backgroundColor: '#f59e0b', borderColor: '#f59e0b', color: '#000'}}>
-              {isDownloading ? "Downloading..." : `Download ${selectedModelName}`}
-            </button>
+            isDownloading ? (
+              <button className="pro-btn primary" onClick={cancelDownload} style={{backgroundColor: '#ef4444', borderColor: '#ef4444', color: '#fff'}}>
+                Cancel Download
+              </button>
+            ) : (
+              <button className="pro-btn primary" onClick={() => downloadModel(selectedModelId)} disabled={isProcessing} style={{backgroundColor: '#f59e0b', borderColor: '#f59e0b', color: '#000'}}>
+                Download {selectedModelName}
+              </button>
+            )
           ) : isProcessing ? (
             <button className="pro-btn primary" onClick={() => invoke("abort_transcription")} style={{backgroundColor: '#ef4444', borderColor: '#ef4444', color: '#fff'}}>
               Cancel Processing
@@ -263,6 +291,9 @@ function App() {
         setSelectedModelId={setSelectedModelId} 
         isDownloading={isDownloading} 
         downloadModel={downloadModel} 
+        cancelDownload={cancelDownload}
+        downloadingModelId={downloadingModelId}
+        deleteModel={deleteModel}
       />
 
       {/* Main Workspace */}

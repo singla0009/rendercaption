@@ -345,6 +345,14 @@ async fn import_custom_model(app: tauri::AppHandle, file_path: String) -> Result
     Ok(filename.to_string_lossy().to_string())
 }
 
+static CANCEL_DOWNLOAD: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[tauri::command]
+async fn cancel_download() -> Result<(), AppError> {
+    CANCEL_DOWNLOAD.store(true, std::sync::atomic::Ordering::Relaxed);
+    Ok(())
+}
+
 #[tauri::command]
 async fn download_model(app: tauri::AppHandle, model_id: String) -> Result<(), AppError> {
     use futures::StreamExt;
@@ -357,13 +365,17 @@ async fn download_model(app: tauri::AppHandle, model_id: String) -> Result<(), A
     let (_, name, filename, url, _, _) = entry;
     let models_dir = get_models_dir(&app);
     let dest_path = models_dir.join(filename);
+    let tmp_path = models_dir.join(format!("{}.tmp", filename));
     
-    // Check if already exists
+    // Check if already exists completely
     if tokio::fs::try_exists(&dest_path).await.unwrap_or(false) {
         app.emit("transcription-log", format!("✅ {} is already downloaded at {}", name, dest_path.display())).unwrap_or(());
         return Ok(());
     }
     
+    // Reset cancel flag before starting
+    CANCEL_DOWNLOAD.store(false, std::sync::atomic::Ordering::Relaxed);
+
     app.emit("transcription-log", format!("[DOWNLOAD] {} ({})", name, filename)).unwrap_or(());
     app.emit("transcription-log", format!("[DOWNLOAD] Saving to: {}", dest_path.display())).unwrap_or(());
     app.emit("transcription-log", "[DOWNLOAD] Starting native secure download...".to_string()).unwrap_or(());
@@ -376,18 +388,26 @@ async fn download_model(app: tauri::AppHandle, model_id: String) -> Result<(), A
         return Err(format!("Download failed with status: {}", response.status()).into());
     }
 
-    let mut file = tokio::fs::File::create(&dest_path)
+    let mut file = tokio::fs::File::create(&tmp_path)
         .await
-        .map_err(|e| format!("Failed to create file: {}", e))?;
+        .map_err(|e| format!("Failed to create temporary file: {}", e))?;
 
     let mut stream = response.bytes_stream();
     let mut downloaded: u64 = 0;
     let mut last_log_time = std::time::Instant::now();
 
     while let Some(chunk) = stream.next().await {
+        if CANCEL_DOWNLOAD.load(std::sync::atomic::Ordering::Relaxed) {
+            // Cancelled!
+            let _ = file.flush().await;
+            drop(file);
+            let _ = tokio::fs::remove_file(&tmp_path).await;
+            app.emit("transcription-log", "[DOWNLOAD] ❌ Download cancelled by user.".to_string()).unwrap_or(());
+            return Err("Download cancelled by user.".into());
+        }
+
         let data = chunk.map_err(|e| format!("Stream error: {}", e))?;
         file.write_all(&data).await.map_err(|e| format!("Write error: {}", e))?;
-
         
         downloaded += data.len() as u64;
         
@@ -399,8 +419,33 @@ async fn download_model(app: tauri::AppHandle, model_id: String) -> Result<(), A
         }
     }
 
+    // Flush and close file
+    file.flush().await.map_err(|e| format!("Failed to flush file: {}", e))?;
+    drop(file);
+
+    // Rename tmp to final
+    tokio::fs::rename(&tmp_path, &dest_path).await.map_err(|e| format!("Failed to finalize download: {}", e))?;
+
     let size_mb = downloaded as f64 / 1_048_576.0;
     app.emit("transcription-log", format!("✅ Downloaded {} ({:.0} MB)", filename, size_mb)).unwrap_or(());
+    
+    Ok(())
+}
+
+#[tauri::command]
+async fn delete_model(app: tauri::AppHandle, model_id: String) -> Result<(), AppError> {
+    let registry = get_model_registry();
+    let entry = registry.iter().find(|(id, _, _, _, _, _)| *id == model_id.as_str())
+        .ok_or_else(|| format!("Unknown model id: {}", model_id))?;
+    
+    let (_, name, filename, _, _, _) = entry;
+    let models_dir = get_models_dir(&app);
+    let dest_path = models_dir.join(filename);
+    
+    if tokio::fs::try_exists(&dest_path).await.unwrap_or(false) {
+        tokio::fs::remove_file(&dest_path).await.map_err(|e| format!("Failed to delete file: {}", e))?;
+        app.emit("transcription-log", format!("🗑️ Deleted model: {}", name)).unwrap_or(());
+    }
     
     Ok(())
 }
@@ -722,7 +767,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![run_transcription, check_models, download_model, abort_transcription, import_custom_model])
+        .invoke_handler(tauri::generate_handler![run_transcription, check_models, download_model, cancel_download, delete_model, abort_transcription, import_custom_model])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
