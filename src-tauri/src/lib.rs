@@ -235,12 +235,6 @@ fn get_model_registry() -> Vec<(&'static str, &'static str, &'static str, &'stat
         ("tdt-1.1b-q4", "English Parakeet TDT 1.1B (Q4)", "tdt-1.1b-q4_k.gguf",
          "https://huggingface.co/mudler/parakeet-cpp-gguf/resolve/main/tdt-1.1b-q4_k.gguf",
          "English Only", "~1.3 GB VRAM"),
-        ("rnnt-1.1b-q8", "Multilingual Parakeet RNNT 1.1B (Q8)", "rnnt-1.1b-q8_0.gguf",
-         "https://huggingface.co/mudler/parakeet-cpp-gguf/resolve/main/rnnt-1.1b-q8_0.gguf",
-         "25+ Languages (EN, FR, JA...)", "~1.8 GB VRAM"),
-        ("rnnt-1.1b-q4", "Multilingual Parakeet RNNT 1.1B (Q4)", "rnnt-1.1b-q4_k.gguf",
-         "https://huggingface.co/mudler/parakeet-cpp-gguf/resolve/main/rnnt-1.1b-q4_k.gguf",
-         "25+ Languages (EN, FR, JA...)", "~1.3 GB VRAM"),
         ("eu-fast", "Multilingual Parakeet TDT 0.6B (Fast)", "parakeet-tdt-0.6b-v3-q4_k.gguf",
          "https://huggingface.co/cstr/parakeet-tdt-0.6b-v3-GGUF/resolve/main/parakeet-tdt-0.6b-v3-q4_k.gguf",
          "25+ Languages (EN, FR, JA...)", "~800 MB VRAM"),
@@ -604,17 +598,24 @@ async fn run_transcription(
             };
 
             let mut server_ready = false;
+            let mut startup_err = String::new();
             while let Some(event) = rx.recv().await {
-                if let tauri_plugin_shell::process::CommandEvent::Stdout(bytes) = event {
-                    if String::from_utf8_lossy(&bytes).contains("[SERVER_READY]") {
-                        server_ready = true;
-                        break;
-                    }
+                match event {
+                    tauri_plugin_shell::process::CommandEvent::Stdout(bytes) => {
+                        if String::from_utf8_lossy(&bytes).contains("[SERVER_READY]") {
+                            server_ready = true;
+                            break;
+                        }
+                    },
+                    tauri_plugin_shell::process::CommandEvent::Stderr(bytes) => {
+                        startup_err.push_str(&String::from_utf8_lossy(&bytes));
+                    },
+                    _ => {}
                 }
             }
 
             if !server_ready {
-                return Err(format!("Worker {} failed to initialize", worker_id));
+                return Err(format!("Worker {} failed to initialize: {}", worker_id, startup_err));
             }
             
             app_clone.emit("transcription-log", format!("   Worker {} ready. Processing {} chunks...", worker_id, num_worker_chunks)).unwrap_or(());
