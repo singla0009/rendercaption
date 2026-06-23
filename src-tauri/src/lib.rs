@@ -235,9 +235,9 @@ fn get_model_registry() -> Vec<(&'static str, &'static str, &'static str, &'stat
         ("tdt-1.1b-q4", "English Parakeet TDT 1.1B (Q4)", "tdt-1.1b-q4_k.gguf",
          "https://huggingface.co/mudler/parakeet-cpp-gguf/resolve/main/tdt-1.1b-q4_k.gguf",
          "English Only", "~1.3 GB VRAM"),
-        ("eu-fast", "Multilingual Parakeet TDT 0.6B (Fast)", "parakeet-tdt-0.6b-v3-q4_k.gguf",
-         "https://huggingface.co/cstr/parakeet-tdt-0.6b-v3-GGUF/resolve/main/parakeet-tdt-0.6b-v3-q4_k.gguf",
-         "25+ Languages (EN, FR, JA...)", "~800 MB VRAM"),
+        ("eu-fast", "English Parakeet TDT 0.6B (Fast)", "tdt-0.6b-v3-q4_k.gguf",
+         "https://huggingface.co/mudler/parakeet-cpp-gguf/resolve/main/tdt-0.6b-v3-q4_k.gguf",
+         "English Only", "~800 MB VRAM"),
     ]
 }
 
