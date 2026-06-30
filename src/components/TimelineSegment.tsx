@@ -19,7 +19,10 @@ const TimelineSegment = React.memo(({ seg, currentTime, seekTo }: TimelineSegmen
       </div>
       <div className="segment-text">
         {seg.map((word, wi) => {
-          const isActive = currentTime >= word.start && currentTime <= word.end;
+          const nextWordStart = wi < seg.length - 1 ? seg[wi + 1].start : word.end;
+          const gap = nextWordStart - word.end;
+          const effectiveEnd = gap < 1.0 ? nextWordStart : word.end + 0.1;
+          const isActive = currentTime >= word.start && currentTime < effectiveEnd;
           const isLowConf = word.conf < 0.85;
           return (
             <span

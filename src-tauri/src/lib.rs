@@ -385,9 +385,11 @@ async fn download_model(app: tauri::AppHandle, model_id: String) -> Result<(), A
         return Err(format!("Download failed with status: {}", response.status()).into());
     }
 
-    let mut file = tokio::fs::File::create(&tmp_path)
+    let file = tokio::fs::File::create(&tmp_path)
         .await
         .map_err(|e| format!("Failed to create temporary file: {}", e))?;
+        
+    let mut buf_writer = tokio::io::BufWriter::with_capacity(8 * 1024 * 1024, file);
 
     let mut stream = response.bytes_stream();
     let mut downloaded: u64 = 0;
@@ -396,15 +398,15 @@ async fn download_model(app: tauri::AppHandle, model_id: String) -> Result<(), A
     while let Some(chunk) = stream.next().await {
         if CANCEL_DOWNLOAD.load(std::sync::atomic::Ordering::Relaxed) {
             // Cancelled!
-            let _ = file.flush().await;
-            drop(file);
+            let _ = buf_writer.flush().await;
+            drop(buf_writer);
             let _ = tokio::fs::remove_file(&tmp_path).await;
             app.emit("transcription-log", "[DOWNLOAD] ❌ Download cancelled by user.".to_string()).unwrap_or(());
             return Err("Download cancelled by user.".into());
         }
 
         let data = chunk.map_err(|e| format!("Stream error: {}", e))?;
-        file.write_all(&data).await.map_err(|e| format!("Write error: {}", e))?;
+        buf_writer.write_all(&data).await.map_err(|e| format!("Write error: {}", e))?;
         
         downloaded += data.len() as u64;
         
@@ -417,8 +419,8 @@ async fn download_model(app: tauri::AppHandle, model_id: String) -> Result<(), A
     }
 
     // Flush and close file
-    file.flush().await.map_err(|e| format!("Failed to flush file: {}", e))?;
-    drop(file);
+    buf_writer.flush().await.map_err(|e| format!("Failed to flush file: {}", e))?;
+    drop(buf_writer);
 
     // Rename tmp to final
     tokio::fs::rename(&tmp_path, &dest_path).await.map_err(|e| format!("Failed to finalize download: {}", e))?;

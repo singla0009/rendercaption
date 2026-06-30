@@ -176,11 +176,17 @@ function App() {
     setIsProcessing(false);
   };
 
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
-  };
+  useEffect(() => {
+    let animationFrameId: number;
+    const updateTime = () => {
+      if (audioRef.current && !audioRef.current.paused) {
+        setCurrentTime(audioRef.current.currentTime);
+      }
+      animationFrameId = requestAnimationFrame(updateTime);
+    };
+    animationFrameId = requestAnimationFrame(updateTime);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, []);
 
   const seekTo = useCallback((time: number) => {
     if (audioRef.current) {
@@ -331,7 +337,7 @@ function App() {
               </div>
             ) : (
               <div className="video-container">
-                <video ref={audioRef as any} src={audioUrl || undefined} onTimeUpdate={handleTimeUpdate} controls />
+                <video ref={audioRef as any} src={audioUrl || undefined} controls />
               </div>
             )}
           </div>
